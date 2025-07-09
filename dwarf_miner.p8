@@ -2,6 +2,16 @@ pico-8 cartridge // http://www.pico-8.com
 version 41
 __lua__
 function _init()
+
+	-- map coords & size
+	map_size = 16
+	tile_size = 8
+	map_grid = {}
+	selected_x = 1
+	selected_y = 1
+	
+ init_map()
+ 
 	sp=7
  speed = .03
  
@@ -10,13 +20,13 @@ function _init()
 	gem_tic = 0
 	
 	gem_plr_cooldown = 10
-	gem_plr_rate = 0.01
+	gem_plr_rate = 0.2
 	gem_by_plr = false
 	
 	gem = {}
 	
 	gold_ammt = 0
-	gold_per_gem = 10
+	gold_per_gem = 5
 	gold_to_add = 0
 	
 	dwarfs_limit = 4
@@ -28,12 +38,16 @@ function _init()
 	
 	trader_anim_active = false
 	trader_arrival = 100
-	trader_cooldown = 1
+	trader_cooldown = 0.1
+	trader_maxcap = 20
 	
+	upgrade_menu_active = false
 	
 end
 
 function _update60()
+
+tile_selector()
 
 gem_tic += gem_rate
 
@@ -47,16 +61,19 @@ if gem_plr_cooldown <= 0 then
 end
 
 if btnp(🅾️) then
-	if gem_plr_cooldown >= 10 then
-		create_gem()
-		gem_by_plr = true
-	end
+	if upgrade_menu_active then
+		upgrade_menu_active = false
+	elseif gem_plr_cooldown >= 10 then
+			create_gem()
+			gem_by_plr = true
+		end
 end
 
 if btnp(❎) then
 --	create_gem()
 --	create_dwarfs()
 --	gem_ammt += 1
+	upgrade_menu()
 end
 
 if dwarfs_active >= 1 then
@@ -78,23 +95,8 @@ end
 	 dwarfs_cost += 20
 	end
 	
-	
-	trader_arrival -= trader_cooldown
-	
-	if trader_arrival <= 0 then
-		trader_anim_active = true
-	end
-	
-	if trader_anim_active == true then
-		if gem_ammt >= 1 then
-			gold_to_add = gold_per_gem * gem_ammt
-			gold_ammt += gold_to_add
-			gold_to_add = 0
-			gem_ammt = 0
-		end
-		trader_arrival = 100
-		trader_anim_active = false
-	end
+	trader_logic()
+
 	
 end
 
@@ -102,6 +104,9 @@ function _draw()
 cls()
 rectfill(0, 10, 40, 120, 3)
 rectfill(87, 10, 140, 120, 3)
+
+draw_map()
+
 
 for dwarf in all(mining_dwarfs) do	
 	if sp < 9-speed then
@@ -116,6 +121,7 @@ end
 for g in all(gem) do
 	circfill(g.gem_x, g.gem_y, g.gem_r, g.gem_col)
 end
+
 spr(1, 48, -4, 4, 4)
 
 if trader_arrival < 50 then
@@ -130,6 +136,12 @@ print("plr mining : "..gem_plr_cooldown, 0, 24, 10)
 print("trader route : "..trader_arrival, 0, 30, 10)
 print("gold adding : "..gold_to_add, 0, 42, 10)
 print("total gold : "..gold_ammt, 0, 36, 10)
+
+if upgrade_menu_active == true then
+	draw_upgrade_menu()
+end	
+
+
 
 end
 
@@ -193,6 +205,35 @@ function move_gem()
 		
 end
 
+function trader_logic()
+	
+	local removed = 0
+	trader_arrival -= trader_cooldown
+	
+	if trader_arrival <= 0 then
+		trader_anim_active = true
+	end
+	
+	if trader_anim_active == true then
+		if gem_ammt >= 1 then
+			for i = #gem, 1, -1 do
+			if removed < trader_maxcap then
+				gold_to_add += gold_per_gem
+				del(gem, gem[i])
+				removed += 1
+				gem_ammt -= 1
+			end
+		end
+		gold_ammt += gold_to_add
+		gold_to_add = 0
+		trader_arrival = 100
+		trader_anim_active = false
+	end
+end
+
+end
+
+
 function create_dwarfs()
 	local d = {
 		cost = dwarfs_cost
@@ -200,6 +241,84 @@ function create_dwarfs()
 		add(mining_dwarfs, d)
 		dwarfs_active += 1
 end
+
+function upgrade_menu()
+	upgrade_menu_active = true
+	
+	if btnp(⬆️) then
+		selectedoption = selectedoption - 1
+		if selectedoption < 1 then
+			selectedoption = 3
+		end
+		
+	elseif btnp(⬇️) then
+	 selectedoption = selectedoption + 1
+	 if selectedoption > 3 then
+	  selectedoption = 1
+	 end
+	end
+end
+
+function draw_upgrade_menu()
+	rectfill(8, 10, 120, 120, 2)
+	
+	print("buy houses ", 10, 14, selectedoption == 1 and 10 or 7)
+	print("buy forge ", 10, 26, selectedoption == 1 and 10 or 7)
+	print("upgrade road ", 10, 38, selectedoption == 1 and 10 or 7)
+
+end
+
+-- initialize map
+
+function init_map()
+
+	for y=1,map_size do
+		map_grid[y] = {}
+		for x=1,map_size do
+			map_grid[y][x] = {
+				buidable = false,
+				blocked = false,
+				constructable = false
+			}
+		end
+	end
+	
+	map_grid[3][4].buildable = true
+	map_grid[1][1].blocked = true
+	map_grid[16][16].buildable = true
+end
+
+function tile_selector()
+	if btnp(⬅️) then selected_x = max(1, selected_x - 1) end
+	if btnp(➡️) then selected_x = min(map_size, selected_x + 1) end	
+ if btnp(⬆️) then selected_y = max(1, selected_y - 1) end
+	if btnp(⬇️) then selected_y = min(map_size, selected_y + 1) end
+end
+
+function draw_map()
+	for y=1,map_size do
+  for x=1,map_size do
+   local tile = map_grid[y][x]
+   local px = (x-1)*tile_size
+   local py = (y-1)*tile_size
+
+   if tile.blocked then
+    rectfill(px, py, px+7, py+7, 8) -- gray
+   elseif tile.buildable then
+    rectfill(px, py, px+7, py+7, 11) -- green
+   elseif tile.destroyable then
+    rectfill(px, py, px+7, py+7, 9) -- red
+   else
+    rectfill(px, py, px+7, py+7, 1) -- dark blue
+   end
+  end
+  
+  local sel_px = (selected_x - 1)*tile_size
+  local sel_py = (selected_y - 1)*tile_size
+		rect(sel_px, sel_py, sel_px+7, sel_py+7, 10)
+end
+end
+
 -->8
 -- animations
 
