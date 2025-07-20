@@ -42,13 +42,19 @@ function _init()
 	trader_maxcap = 20
 	
 	upgrade_menu_active = false
+	selected_upgrade = ""
+	choosing_map_upgrade = false
+	selectedoption = 1
+	
+	debug_menu = false
+	
 	
 end
 
 function _update60()
 
 tile_selector()
-
+upgrade_menu()
 gem_tic += gem_rate
 
 if gem_by_plr == true then
@@ -73,7 +79,18 @@ if btnp(❎) then
 --	create_gem()
 --	create_dwarfs()
 --	gem_ammt += 1
-	upgrade_menu()
+	if not upgrade_menu_active then
+			upgrade_menu_active = true
+	else
+			upgrade_menu_active = false
+	end
+--	build_upgrade(selected_x, selected_y, selected_upgrade)
+end
+
+if btnp(❎) and btnp(🅾️) and debug_menu == false then
+ debug_menu = true
+ elseif btnp(❎) and btnp(🅾️) and debug_menu == true then
+ debug_menu = false
 end
 
 if dwarfs_active >= 1 then
@@ -105,8 +122,9 @@ cls()
 rectfill(0, 10, 40, 120, 3)
 rectfill(87, 10, 140, 120, 3)
 
-draw_map()
-
+if choosing_map_upgrade == true then
+	draw_map()
+end
 
 for dwarf in all(mining_dwarfs) do	
 	if sp < 9-speed then
@@ -128,14 +146,16 @@ if trader_arrival < 50 then
 	spr(48, 10+trader_cooldown, 120)
 end
 
-print("gem tic rate : "..gem_tic, 0, 0, 10)
-print("gem_speed : "..gem_rate, 0, 6, 10)
-print("gems : "..gem_ammt,0, 12, 10)
-print("dwarfs : "..dwarfs_active,0 ,18, 10)
-print("plr mining : "..gem_plr_cooldown, 0, 24, 10)
-print("trader route : "..trader_arrival, 0, 30, 10)
-print("gold adding : "..gold_to_add, 0, 42, 10)
-print("total gold : "..gold_ammt, 0, 36, 10)
+if debug_menu then
+	print("gem tic rate : "..gem_tic, 0, 0, 10)
+	print("gem_speed : "..gem_rate, 0, 6, 10)
+	print("gems : "..gem_ammt,0, 12, 10)
+	print("dwarfs : "..dwarfs_active,0 ,18, 10)
+	print("plr mining : "..gem_plr_cooldown, 0, 24, 10)
+	print("trader route : "..trader_arrival, 0, 30, 10)
+	print("gold adding : "..gold_to_add, 0, 42, 10)
+	print("total gold : "..gold_ammt, 0, 36, 10)
+end 
 
 if upgrade_menu_active == true then
 	draw_upgrade_menu()
@@ -243,7 +263,6 @@ function create_dwarfs()
 end
 
 function upgrade_menu()
-	upgrade_menu_active = true
 	
 	if btnp(⬆️) then
 		selectedoption = selectedoption - 1
@@ -257,15 +276,29 @@ function upgrade_menu()
 	  selectedoption = 1
 	 end
 	end
+
+	if btnp(🅾️) then
+		if selectedoption == 1 then
+			selected_upgrade = "housing"
+		elseif selectedoption == 2 then
+			selected_upgrade = "forge"
+		elseif selectedoption == 3 then
+			selected_upgrade = "road"
+	end
+		choosing_map_upgrade = true
+		tile_selector()
+	end
+	
 end
 
 function draw_upgrade_menu()
 	rectfill(8, 10, 120, 120, 2)
-	
+	print(selectedoption)
 	print("buy houses ", 10, 14, selectedoption == 1 and 10 or 7)
-	print("buy forge ", 10, 26, selectedoption == 1 and 10 or 7)
-	print("upgrade road ", 10, 38, selectedoption == 1 and 10 or 7)
+	print("buy forge ", 10, 26, selectedoption == 2 and 10 or 7)
+	print("upgrade road ", 10, 38, selectedoption == 3 and 10 or 7)
 
+--	rect(8, 10, 120, 120, 2)
 end
 
 -- initialize map
@@ -276,23 +309,44 @@ function init_map()
 		map_grid[y] = {}
 		for x=1,map_size do
 			map_grid[y][x] = {
-				buidable = false,
-				blocked = false,
-				constructable = false
+				housing = false,
+				forge = false,
+				road = false
 			}
 		end
 	end
 	
-	map_grid[3][4].buildable = true
-	map_grid[1][1].blocked = true
-	map_grid[16][16].buildable = true
+	map_grid[3][4].housing = true
+	map_grid[1][1].forge = true
+	map_grid[16][16].road = true
 end
 
 function tile_selector()
 	if btnp(⬅️) then selected_x = max(1, selected_x - 1) end
 	if btnp(➡️) then selected_x = min(map_size, selected_x + 1) end	
- if btnp(⬆️) then selected_y = max(1, selected_y - 1) end
+    if btnp(⬆️) then selected_y = max(1, selected_y - 1) end
 	if btnp(⬇️) then selected_y = min(map_size, selected_y + 1) end
+
+	if btnp(🅾️) then
+		build_upgrade(selected_x, selected_y, selected_upgrade)
+	end
+end
+
+function build_upgrade(x, y, upgrade)
+	if upgrade == "housing" then
+		map_grid[y][x] = {
+			housing = true
+		}
+	elseif upgrade == "forge" then
+		map_grid[y][x] = {
+			forge = true
+		}
+	elseif upgrade == "road" then
+		map_grid[y][x] = {
+			road = true
+		}
+	end
+
 end
 
 function draw_map()
@@ -302,11 +356,11 @@ function draw_map()
    local px = (x-1)*tile_size
    local py = (y-1)*tile_size
 
-   if tile.blocked then
+   if tile.forge then
     rectfill(px, py, px+7, py+7, 8) -- gray
-   elseif tile.buildable then
+   elseif tile.housing then
     rectfill(px, py, px+7, py+7, 11) -- green
-   elseif tile.destroyable then
+   elseif tile.road then
     rectfill(px, py, px+7, py+7, 9) -- red
    else
     rectfill(px, py, px+7, py+7, 1) -- dark blue
