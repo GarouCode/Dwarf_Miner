@@ -1,0 +1,78 @@
+pico-8 cartridge // http://www.pico-8.com
+version 41
+__lua__
+function _init()
+	x1 = 0
+	y1 = 40
+	x2 = 40
+	y2 = 80
+	angle = 0
+	
+	directionx1 = 1
+	directionx2 = 1
+	directiony1 = 1
+	directiony2 = 1
+	
+	
+end
+
+
+function _update60()
+
+	x1 += directionx1
+	x2 += directionx2
+	
+	y1 += directiony1
+	y2 += directiony2
+	
+	if x1 > 90 then
+		directionx1 = -1
+	elseif x1 < 0 then
+		directionx1 = 1
+	end
+	
+	if x2 > 90 then
+		directionx2 = -1
+	elseif x2 < 0 then
+		directionx2 = 1
+	end
+
+	if y1 > 90 then
+		directiony1 = -1
+	elseif y1 < 0 then
+		directiony1 = 1
+	end
+			
+ if y2 > 90 then
+		directiony2 = -1
+	elseif y2 < 0 then
+		directiony2 = 1
+	end
+
+function draw_pentagram(x1, y1, x2, y2, angle, col)
+ oval(x1, y1, x2, y2, col)
+ local cx, cy, w, h = (x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) / 2, (y2 - y1) / 2
+ local step = 2 / 5
+ for i = 0, 4 do
+  local a_a, a_b = angle + step * i, angle + step * (i - 1)
+  local x_a, y_a = sin(a_a) * w + cx, cos(a_a) * h + cy
+  local x_b, y_b = sin(a_b) * w + cx, cos(a_b) * h + cy
+  line(x_a, y_a, x_b, y_b, col)
+ end
+end
+
+end
+
+function _draw()
+	cls()
+	draw_pentagram(x1, y1, x2, y2, 0, 6)
+	print("x1: "..x1)
+	print("x2: "..x2)
+end
+__gfx__
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
